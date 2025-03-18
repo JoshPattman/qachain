@@ -15,8 +15,8 @@ func main() {
 		NewLLMStep(
 			client,
 			[]LLMQuestion{
-				{"company_name", "What is the name of the company in question?", LLMText},
-				{"how_many_backers", "How many companies/customers trust this company? Respond with an integer and no extra text.", LLMInt},
+				{"company_name", "What is the name of the company in question?", LLMText, "Unnamed Company"},
+				{"how_many_backers", "How many companies/customers trust this company? Respond with an integer and no extra text.", LLMInt, 0},
 			},
 		),
 		chain.NewConditionalStep(
@@ -29,7 +29,7 @@ func main() {
 			},
 			[]chain.Step{
 				NewLLMStep(client, []LLMQuestion{
-					{"catch_phrase", "What is the companies catch-phrase / slogan?", LLMText},
+					{"catch_phrase", "What is the companies catch-phrase / slogan?", LLMText, "No Slogan"},
 				}),
 			},
 			[]chain.Step{
@@ -39,7 +39,10 @@ func main() {
 	}
 
 	ctx := chain.NewContext(text)
-	chain.Run(steps, ctx)
+	err := chain.Run(steps, ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	for key, val := range ctx.Values() {
 		fmt.Println(key, ":", val)

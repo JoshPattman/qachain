@@ -19,6 +19,7 @@ type LLMQuestion struct {
 	ID       string
 	Question string
 	Type     LLMType
+	Default  any
 }
 
 var _ chain.Step = &llmStep{}
@@ -50,6 +51,11 @@ func parse(text string, t LLMType) (any, error) {
 
 // Do implements chain.Step.
 func (l *llmStep) Do(ctx *chain.Context) ([]chain.Step, error) {
+	for _, q := range l.questions {
+		if err := chain.Set(ctx, q.ID, q.Default); err != nil {
+			return nil, err
+		}
+	}
 	qLines := make([]string, 0)
 	for qi, q := range l.questions {
 		line := fmt.Sprintf("%d: %s", qi, q.Question)
