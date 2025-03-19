@@ -6,10 +6,14 @@ import (
 	"maps"
 )
 
+// Context is a wrapper around a set of key-value pairs
+// It is modified indirectly when steps are run, and provides the input data to further steps.
 type Context struct {
 	vars map[string]any
 }
 
+// NewContext creates a new context with the given initial values.
+// Themap will be copied so the underlying map is not shared.
 func NewContext(initialValues map[string]any) *Context {
 	var vals map[string]any
 	if initialValues == nil {
@@ -22,6 +26,7 @@ func NewContext(initialValues map[string]any) *Context {
 	}
 }
 
+// Values iterates over each key-value pair in the map.
 func (ctx *Context) Values() iter.Seq2[string, any] {
 	return func(yield func(string, any) bool) {
 		for key, val := range ctx.vars {
@@ -32,6 +37,7 @@ func (ctx *Context) Values() iter.Seq2[string, any] {
 	}
 }
 
+// Get extracts a specific typed value from the context.
 func Get[T any](ctx *Context, key string) (T, error) {
 	val, ok := ctx.vars[key]
 	if !ok {
@@ -42,9 +48,4 @@ func Get[T any](ctx *Context, key string) (T, error) {
 		return *new(T), fmt.Errorf("key '%s' had type %T but wanted %T", key, val, *new(T))
 	}
 	return valT, nil
-}
-
-func Set[T any](ctx *Context, key string, val T) error {
-	ctx.vars[key] = val
-	return nil
 }

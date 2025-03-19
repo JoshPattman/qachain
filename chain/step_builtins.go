@@ -9,6 +9,7 @@ type conditionalStep struct {
 	value   bool
 }
 
+// NewConditionalStep creates a new step that runs ine of it's child options depending on the boolean variable.
 func NewConditionalStep(key string, ifTrue, ifFalse []Step) Step {
 	return &conditionalStep{
 		key:     key,
@@ -40,6 +41,7 @@ type setStep struct {
 	value any
 }
 
+// NewSetStep creates a step that always sets the provided variable.
 func NewSetStep(key string, value any) Step {
 	return &setStep{
 		key:   key,
