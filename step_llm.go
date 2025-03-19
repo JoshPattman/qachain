@@ -27,6 +27,7 @@ var _ chain.Step = &llmStep{}
 type llmStep struct {
 	client    Client
 	questions []LLMQuestion
+	document  string
 }
 
 func NewLLMStep(client Client, qs []LLMQuestion) chain.Step {
@@ -50,11 +51,9 @@ func parse(text string, t LLMType) (any, error) {
 }
 
 // Do implements chain.Step.
-func (l *llmStep) Do(ctx *chain.Context) ([]chain.Step, error) {
+func (l *llmStep) Do(actions *chain.Actions) ([]chain.Step, error) {
 	for _, q := range l.questions {
-		if err := chain.Set(ctx, q.ID, q.Default); err != nil {
-			return nil, err
-		}
+		actions.Set(q.ID, q.Default)
 	}
 	qLines := make([]string, 0)
 	for qi, q := range l.questions {
@@ -64,7 +63,7 @@ func (l *llmStep) Do(ctx *chain.Context) ([]chain.Step, error) {
 
 	systemPrompt := "You are a helpful and accurate QA bot. You will answer the users questions perfectly. Respond with each answer on a new line, in format '<question_number>: <answer>', for example '5: true.'"
 	questionsText := strings.Join(qLines, "\n")
-	userPrompt := fmt.Sprintf("========== DOCUMENT ==========\n%s========== QUESTIONS ==========\n%s", ctx.Document(), questionsText)
+	userPrompt := fmt.Sprintf("========== DOCUMENT ==========\n%s========== QUESTIONS ==========\n%s", l.document, questionsText)
 
 	resp, _, err := l.client.GetLLMResponse(systemPrompt, userPrompt)
 	if err != nil {
@@ -89,9 +88,14 @@ func (l *llmStep) Do(ctx *chain.Context) ([]chain.Step, error) {
 		if err != nil {
 			continue
 		}
-		if err := chain.Set(ctx, l.questions[id].ID, answer); err != nil {
-			return nil, err
-		}
+		actions.Set(l.questions[id].ID, answer)
 	}
 	return nil, nil
+}
+
+// Inputs implements chain.Step.
+func (l *llmStep) Inputs() []chain.Input {
+	return []chain.Input{
+		chain.I("document", &l.document),
+	}
 }

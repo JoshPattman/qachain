@@ -6,13 +6,34 @@ import (
 	"testing"
 )
 
+var _ chain.Step = &trueIfDocContains{}
+
+type trueIfDocContains struct {
+	contains  string
+	targetKey string
+	doc       string
+}
+
+// Do implements chain.Step.
+func (t *trueIfDocContains) Do(actions *chain.Actions) ([]chain.Step, error) {
+	val := strings.Contains(t.doc, t.contains)
+	actions.Set(t.targetKey, val)
+	return nil, nil
+}
+
+// Inputs implements chain.Step.
+func (t *trueIfDocContains) Inputs() []chain.Input {
+	return []chain.Input{
+		chain.I("document", &t.doc),
+	}
+}
+
 func TestStep(t *testing.T) {
 	steps := []chain.Step{
 		chain.NewSetStep("constant_true", true),
+		&trueIfDocContains{contains: "doc", targetKey: "doc_contains_substr"},
 		chain.NewConditionalStep(
-			func(ctx *chain.Context) (bool, error) {
-				return strings.Contains(ctx.Document(), "doc"), nil
-			},
+			"doc_contains_substr",
 			[]chain.Step{
 				chain.NewSetStep("has_doc", true),
 			},
@@ -22,7 +43,7 @@ func TestStep(t *testing.T) {
 		),
 	}
 
-	ctx1 := chain.NewContext("This is a document")
+	ctx1 := chain.NewContext(map[string]any{"document": "This is a document"})
 	if err := chain.Run(steps, ctx1); err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +54,7 @@ func TestStep(t *testing.T) {
 		t.Fatal("incorrect prediction for doc 1")
 	}
 
-	ctx2 := chain.NewContext("This is not")
+	ctx2 := chain.NewContext(map[string]any{"document": "This is not"})
 	if err := chain.Run(steps, ctx2); err != nil {
 		t.Fatal(err)
 	}

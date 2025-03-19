@@ -8,6 +8,32 @@ import (
 
 var openAIKey = os.Getenv("OPENAI_KEY")
 
+var _ chain.Step = &trueIfGTE{}
+
+type trueIfGTE struct {
+	srcKey    string
+	tarKey    string
+	threshold int
+	srvVal    int
+}
+
+// Do implements chain.Step.
+func (t *trueIfGTE) Do(actions *chain.Actions) ([]chain.Step, error) {
+	val := false
+	if t.srvVal > t.threshold {
+		val = true
+	}
+	actions.Set(t.tarKey, val)
+	return nil, nil
+}
+
+// Inputs implements chain.Step.
+func (t *trueIfGTE) Inputs() []chain.Input {
+	return []chain.Input{
+		chain.I(t.srcKey, &t.srvVal),
+	}
+}
+
 func main() {
 	client := NewOpenAIClient(openAIKey, "gpt-4o-mini")
 
@@ -19,14 +45,9 @@ func main() {
 				{"how_many_backers", "How many companies/customers trust this company? Respond with an integer and no extra text.", LLMInt, 0},
 			},
 		),
+		&trueIfGTE{srcKey: "how_many_backers", tarKey: "enough_backers", threshold: 500},
 		chain.NewConditionalStep(
-			func(ctx *chain.Context) (bool, error) {
-				n, err := chain.Get[int](ctx, "how_many_backers")
-				if err != nil {
-					return false, err
-				}
-				return n > 500, nil
-			},
+			"enough_backers",
 			[]chain.Step{
 				NewLLMStep(client, []LLMQuestion{
 					{"catch_phrase", "What is the companies catch-phrase / slogan?", LLMText, "No Slogan"},
@@ -38,7 +59,7 @@ func main() {
 		),
 	}
 
-	ctx := chain.NewContext(text)
+	ctx := chain.NewContext(map[string]any{"document": text})
 	err := chain.Run(steps, ctx)
 	if err != nil {
 		panic(err)

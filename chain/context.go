@@ -3,22 +3,23 @@ package chain
 import (
 	"fmt"
 	"iter"
+	"maps"
 )
 
 type Context struct {
-	document string
-	vars     map[string]any
+	vars map[string]any
 }
 
-func NewContext(doc string) *Context {
-	return &Context{
-		document: doc,
-		vars:     make(map[string]any),
+func NewContext(initialValues map[string]any) *Context {
+	var vals map[string]any
+	if initialValues == nil {
+		vals = make(map[string]any)
+	} else {
+		vals = maps.Clone(initialValues)
 	}
-}
-
-func (ctx *Context) Document() string {
-	return ctx.document
+	return &Context{
+		vars: vals,
+	}
 }
 
 func (ctx *Context) Values() iter.Seq2[string, any] {

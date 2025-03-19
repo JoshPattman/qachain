@@ -3,29 +3,33 @@ package chain
 var _ Step = &conditionalStep{}
 
 type conditionalStep struct {
-	fn      func(ctx *Context) (bool, error)
+	key     string
 	ifTrue  []Step
 	ifFalse []Step
+	value   bool
 }
 
-func NewConditionalStep(condition func(ctx *Context) (bool, error), ifTrue, ifFalse []Step) Step {
+func NewConditionalStep(key string, ifTrue, ifFalse []Step) Step {
 	return &conditionalStep{
-		fn:      condition,
+		key:     key,
 		ifTrue:  ifTrue,
 		ifFalse: ifFalse,
 	}
 }
 
 // Do implements Step.
-func (f *conditionalStep) Do(ctx *Context) ([]Step, error) {
-	cond, err := f.fn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if cond {
+func (f *conditionalStep) Do(actions *Actions) ([]Step, error) {
+	if f.value {
 		return f.ifTrue, nil
 	} else {
 		return f.ifFalse, nil
+	}
+}
+
+// Inputs implements Step.
+func (f *conditionalStep) Inputs() []Input {
+	return []Input{
+		I(f.key, &f.value),
 	}
 }
 
@@ -44,7 +48,12 @@ func NewSetStep(key string, value any) Step {
 }
 
 // Do implements Step.
-func (s *setStep) Do(ctx *Context) ([]Step, error) {
-	err := Set(ctx, s.key, s.value)
-	return nil, err
+func (s *setStep) Do(actions *Actions) ([]Step, error) {
+	actions.Set(s.key, s.value)
+	return nil, nil
+}
+
+// Inputs implements Step.
+func (f *setStep) Inputs() []Input {
+	return []Input{}
 }
