@@ -1,7 +1,5 @@
 package chain
 
-import "fmt"
-
 // Step is a specific piece of code that may execute during running a chain.
 type Step interface {
 	// Inputs defines which inputs this step requires to run.
@@ -18,27 +16,14 @@ func Run(steps []Step, ctx *Context) error {
 	for _, s := range steps {
 		inputs := s.Inputs()
 		for _, i := range inputs {
-			val, ok := ctx.vars[i.Source()]
-			if !ok {
-				return fmt.Errorf("step required a key that did not exist")
-			}
-			err := i.Set(val)
-			if err != nil {
-				return err
-			}
+			extractInput(i, ctx)
 		}
 		actions := &Actions{}
 		next, err := s.Do(actions)
 		if err != nil {
 			return err
 		}
-		for _, ac := range actions.actions {
-			if ac.delete {
-				delete(ctx.vars, ac.key)
-			} else {
-				ctx.vars[ac.key] = ac.setValue
-			}
-		}
+		doActions(actions, ctx)
 		if err := Run(next, ctx); err != nil {
 			return err
 		}

@@ -1,6 +1,8 @@
 package chain
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Input is a type that knows a source key from the context, and can attempt to set itself with that value.
 type Input interface {
@@ -33,5 +35,17 @@ func (v *valInput[T]) Set(val any) error {
 		return fmt.Errorf("cannot convert %T to %T", val, vt)
 	}
 	*v.Ptr = vt
+	return nil
+}
+
+func extractInput(i Input, ctx *Context) error {
+	val, ok := ctx.vars[i.Source()]
+	if !ok {
+		return fmt.Errorf("step required a key that did not exist")
+	}
+	err := i.Set(val)
+	if err != nil {
+		return err
+	}
 	return nil
 }

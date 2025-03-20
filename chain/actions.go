@@ -26,3 +26,13 @@ func (a *Actions) Delete(key string) {
 		delete: true,
 	})
 }
+
+func doActions(actions *Actions, ctx *Context) {
+	for _, ac := range actions.actions {
+		if ac.delete {
+			delete(ctx.vars, ac.key)
+		} else {
+			ctx.vars[ac.key] = ac.setValue
+		}
+	}
+}
